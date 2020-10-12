@@ -25,8 +25,17 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 
 	// Strip the prefix, if it's present.
 	path := r.URL.Path
+
 	if len(c.StripPath) > 0 {
 		path = strings.TrimPrefix(path, c.StripPath)
+	}
+
+	// Fetch Bucket from url
+	bucket := c.S3Bucket
+	i := strings.Index(path[1:], "/")
+	if i != -1 {
+		bucket = path[1 : i+1]
+		path = path[i+1:]
 	}
 
 	// If there is a health check path defined, and if this path matches it,
@@ -47,7 +56,7 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	// Replace path with symlink.json
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
-		replaced, err := replacePathWithSymlink(client, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
+		replaced, err := replacePathWithSymlink(client, bucket, c.S3KeyPrefix+path[:idx+12])
 		if err != nil {
 			code, message := toHTTPError(err)
 			http.Error(w, message, code)
@@ -58,13 +67,13 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	// Ends with / -> listing or index.html
 	if strings.HasSuffix(path, "/") {
 		if c.DirectoryListing {
-			s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path)
+			s3listFiles(w, r, client, bucket, c.S3KeyPrefix+path)
 			return
 		}
 		path += c.IndexDocument
 	}
 	// Get a S3 object
-	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
+	obj, err := client.S3get(bucket, c.S3KeyPrefix+path, rangeHeader)
 	if err != nil {
 		code, message := toHTTPError(err)
 		http.Error(w, message, code)
