@@ -104,7 +104,7 @@ func header(r *http.Request, key string) (string, bool) {
 }
 
 func splitCsvLine(data string) []string {
-	splitted := strings.SplitN(data, ",", -1)
+	splitted := strings.Split(data, ",")
 	parsed := make([]string, len(splitted))
 	for i, val := range splitted {
 		parsed[i] = strings.TrimSpace(val)
